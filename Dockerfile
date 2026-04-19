@@ -27,9 +27,9 @@ COPY run.py .
 RUN chown -R nexus:nexus /app
 USER nexus
 
-# Expose port
+# Expose port (Documentation only, Render uses $PORT)
 EXPOSE 8000
 
 # Run the application with production-optimized settings
-# Note: We use uvicorn directly but recommend 4 workers for production
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# We use the shell form of CMD to allow environment variable expansion for $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4 --proxy-headers --forwarded-allow-ips "*"
