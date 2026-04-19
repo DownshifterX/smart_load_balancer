@@ -1,0 +1,41 @@
+{
+  "simulation": {
+    "tick_interval_ms": 500,
+    "max_servers": 12,
+    "default_algorithm": "round_robin",
+    "default_traffic_mode": "normal"
+  },
+  "default_servers": [
+    {
+      "name": "NODE-ALPHA",
+      "weight": 1,
+      "max_connections": 100,
+      "response_time_base": 45
+    },
+    {
+      "name": "NODE-BETA",
+      "weight": 1,
+      "max_connections": 120,
+      "response_time_base": 55
+    },
+    {
+      "name": "NODE-GAMMA",
+      "weight": 2,
+      "max_connections": 150,
+      "response_time_base": 40
+    },
+    {
+      "name": "NODE-DELTA",
+      "weight": 1,
+      "max_connections": 80,
+      "response_time_base": 60
+    }
+  ],
+  "auto_scaling": {
+    "enabled": false,
+    "min_servers": 2,
+    "max_servers": 8,
+    "scale_up_cpu_threshold": 70,
+    "scale_down_cpu_threshold": 20
+  }
+}

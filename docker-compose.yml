@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Main Application Service
+  nexus:
+    build: .
+    image: nexus-simulator:latest
+    container_name: nexus_app
+    networks:
+      - nexus-network
+    env_file:
+      - .env
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Reverse Proxy (Production Ready)
+  gateway:
+    image: nginx:alpine
+    container_name: nexus_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - nexus
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge

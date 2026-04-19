@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Load Balancer Simulator — Real-time load balancing visualization dashboard with Matrix-themed hacker aesthetic">
+    <title>NEXUS // Load Balancer Simulator</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <!-- Globe.gl & Three.js -->
+    <script src="https://unpkg.com/globe.gl"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+
+    <style>
+        /* Inline critical loading screen */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0a0a; display: flex; align-items: center;
+            justify-content: center; flex-direction: column; gap: 20px;
+            z-index: 10000; font-family: 'Share Tech Mono', monospace;
+        }
+        #loading-screen .loader-text {
+            color: #00ff41; font-size: 1.2rem; letter-spacing: 4px;
+            text-transform: uppercase; text-shadow: 0 0 10px rgba(0,255,65,0.5);
+        }
+        #loading-screen .loader-bar {
+            width: 300px; height: 3px; background: #1a1a1a;
+            border: 1px solid #1f3d1f; position: relative; overflow: hidden;
+        }
+        #loading-screen .loader-bar::after {
+            content: ''; position: absolute; top: 0; left: -100%;
+            width: 100%; height: 100%; background: #00ff41;
+            animation: load-sweep 1.5s ease-in-out infinite;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        @keyframes load-sweep {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        #loading-screen .loader-sub {
+            color: #00801f; font-size: 0.7rem; letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- AMOLED Startup Glow -->
+    <div id="startup-glow" class="startup-glow"></div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-text">Initializing NEXUS</div>
+        <div class="loader-bar"></div>
+        <div class="loader-sub">LOAD BALANCER SIMULATOR v1.0.0</div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" style="display:none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    ⬡ NEXUS
+                    <span class="logo-sub">Load Balancer Sim</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-view="dashboard" id="nav-dashboard">
+                    <span class="nav-icon">◉</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-view="servers" id="nav-servers">
+                    <span class="nav-icon">▣</span>
+                    <span>Servers</span>
+                </div>
+                <div class="nav-item" data-view="algorithms" id="nav-algorithms">
+                    <span class="nav-icon">⧫</span>
+                    <span>Algorithms</span>
+                </div>
+                <div class="nav-item" data-view="logs" id="nav-logs">
+                    <span class="nav-icon">▤</span>
+                    <span>Logs</span>
+                </div>
+                <div class="nav-item" data-view="analytics" id="nav-analytics">
+                    <span class="nav-icon">◈</span>
+                    <span>Analytics</span>
+                </div>
+                <div class="nav-item" data-view="geomap" id="nav-geomap">
+                    <span class="nav-icon">🌍</span>
+                    <span>Geo-Map</span>
+                </div>
+                <div class="nav-item" data-view="settings" id="nav-settings">
+                    <span class="nav-icon">⚙</span>
+                    <span>Settings</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <span class="status-dot" id="ws-dot"></span>
+                <span id="ws-status-text">CONNECTING</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="content-header">
+                <h1 id="view-title">COMMAND CENTER</h1>
+                <div class="header-controls">
+                    <div class="connection-status">
+                        <div class="connection-dot" id="connection-dot"></div>
+                        <span id="connection-text">Offline</span>
+                    </div>
+                    <button class="btn btn-primary" id="btn-start-stop" onclick="toggleSimulation()">
+                        ▶ START
+                    </button>
+                    <button class="btn" onclick="resetSimulation()">↺ RESET</button>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-body">
+                <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
+                <div class="view-panel active" id="view-dashboard">
+                    <!-- Stats Row -->
+                    <div class="grid-4 mb-md" id="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-title">Total Requests</div>
+                            <div class="stat-value" id="stat-total-requests">0</div>
+                            <div class="stat-sub" id="stat-rps">0 req/s</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Active Connections</div>
+                            <div class="stat-value" id="stat-active-connections">0</div>
+                            <div class="stat-sub" id="stat-servers-info">0 servers online</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Success Rate</div>
+                            <div class="stat-value" id="stat-success-rate">100%</div>
+                            <div class="stat-sub" id="stat-failed">0 failed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Avg Response</div>
+                            <div class="stat-value" id="stat-avg-response">0ms</div>
+                            <div class="stat-sub" id="stat-p95">P95: 0ms</div>
+                        </div>
+                    </div>
+
+                    <!-- Traffic Controls -->
+                    <div class="card mb-md">
+                        <div class="card-header">
+                            <div class="card-title">Traffic Controls</div>
+                            <div class="badge badge-healthy" id="traffic-mode-badge">
+                                <span class="badge-dot"></span>
+                                NORMAL
+                            </div>
+                        </div>
+                        <div class="card-controls" style="margin-top:16px;">
+                            <button class="btn btn-sm" onclick="setTraffic('stopped')">■ STOP</button>
+                            <button class="btn btn-sm" onclick="setTraffic('slow')">▶ SLOW</button>
+                            <button class="btn btn-sm btn-primary" onclick="setTraffic('normal')">▶▶ NORMAL</button>
+                            <button class="btn btn-sm btn-warning" onclick="setTraffic('heavy')">▶▶▶ HEAVY</button>
+                            <button class="btn btn-sm btn-warning" onclick="setTraffic('burst')">⚡ BURST</button>
+                            <button class="btn btn-sm btn-danger" onclick="triggerSpike()">💥 SPIKE</button>
+                            <span class="divider">|</span>
+                            <button class="btn btn-sm" onclick="sendManualRequest()">+ REQ</button>
+                        </div>
+                    </div>
+
+                    <!-- Raft Control Plane -->
+                    <div class="card mb-md">
+                        <div class="card-header border-bottom mb-sm" style="padding-bottom:8px;">
+                            <div class="card-title" style="color:var(--matrix-green-glow); text-shadow:0 0 5px var(--matrix-green);">CONTROL PLANE (RAFT CONSENSUS)</div>
+                            <div class="stat-sub" id="raft-status-text">LEADER ELECTION: OK</div>
+                        </div>
+                        <div id="raft-nodes-container" style="display:flex; gap:16px; justify-content:space-between; flex-wrap:wrap;">
+                            <!-- Raft Nodes will be generated here by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Grid -->
+                    <div class="grid-2 mb-md">
+                        <!-- RPS Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Requests / Second</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-rps"></canvas>
+                            </div>
+                        </div>
+                        <!-- Response Time Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Response Time (ms)</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-response-time"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Server Load Bars -->
+                    <div class="card mb-md">
+                        <div class="card-header">
+                            <div class="card-title">Server Load Distribution</div>
+                            <div class="card-title" id="algo-display" style="font-family:var(--font-mono);letter-spacing:1px;font-size:0.7rem;">ROUND ROBIN</div>
+                        </div>
+                        <div id="server-load-bars">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Alerts + Request Stream -->
+                    <div class="grid-2">
+                        <!-- Alerts Panel -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">⚠ Alerts & Advisories</div>
+                            </div>
+                            <div id="alerts-panel" style="max-height:250px;overflow-y:auto;">
+                                <div class="alert-banner info"><div class="alert-content"><div class="alert-title">System Ready</div><div class="alert-message">Start simulation to begin monitoring</div></div></div>
+                            </div>
+                        </div>
+                        <!-- Recent Requests -->
+                        <div class="terminal">
+                            <div class="terminal-header">
+                                <div class="dot"></div>
+                                REQUEST STREAM
+                            </div>
+                            <div class="terminal-body" id="request-stream">
+                                <div class="terminal-line system">Awaiting traffic...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SERVERS VIEW ═══════════ -->
+                <div class="view-panel" id="view-servers">
+                    <div class="flex-between mb-md">
+                        <div class="section-title" style="border:none;margin:0;padding:0;">Server Nodes</div>
+                    </div>
+
+                    <!-- Deploy Server Form -->
+                    <div class="card mb-md" style="border: 1px solid var(--matrix-green-dim); box-shadow: 0 0 10px rgba(0,255,65,0.05);">
+                        <div class="card-header border-bottom mb-sm" style="padding-bottom: 8px;">
+                            <div class="card-title" style="color:var(--matrix-green-glow);">Deploy Custom Server</div>
+                        </div>
+                        <div class="grid-4" style="align-items: end; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Identifier (Name)</label>
+                                <input type="text" id="deploy-name" class="input" placeholder="e.g. NODE-X1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Region</label>
+                                <select id="deploy-region" class="input">
+                                    <option value="US-East">US-East</option>
+                                    <option value="US-West">US-West</option>
+                                    <option value="EU-West">EU-West</option>
+                                    <option value="EU-Central">EU-Central</option>
+                                    <option value="AP-South">AP-South</option>
+                                    <option value="AP-East">AP-East</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Connections</label>
+                                <input type="number" id="deploy-max-conn" class="input" value="100">
+                            </div>
+                            <button class="btn btn-primary" onclick="submitDeployServer()" style="height: 38px;">DEPLOY NODE</button>
+                        </div>
+                    </div>
+                    <div class="grid-auto" id="servers-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- ═══════════ ALGORITHMS VIEW ═══════════ -->
+                <div class="view-panel" id="view-algorithms">
+                    <div class="section-title mb-md">Select Algorithm</div>
+                    <div class="grid-auto mb-lg" id="algorithms-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="section-title mb-md">Algorithm Comparison</div>
+                    <div class="card">
+                        <div class="chart-container" style="height:250px;">
+                            <canvas id="chart-algo-compare"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ LOGS VIEW ═══════════ -->
+                <div class="view-panel" id="view-logs">
+                    <div class="flex-between mb-md">
+                        <div class="section-title" style="border:none;margin:0;padding:0;">System Logs</div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm active" onclick="filterLogs('all')" id="log-filter-all">ALL</button>
+                            <button class="btn btn-sm" onclick="filterLogs('SYSTEM')" id="log-filter-SYSTEM">SYSTEM</button>
+                            <button class="btn btn-sm" onclick="filterLogs('REQUEST')" id="log-filter-REQUEST">REQUEST</button>
+                            <button class="btn btn-sm" onclick="filterLogs('TRAFFIC')" id="log-filter-TRAFFIC">TRAFFIC</button>
+                            <button class="btn btn-sm" onclick="filterLogs('ERROR')" id="log-filter-ERROR">ERROR</button>
+                        </div>
+                    </div>
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <div class="dot"></div>
+                            NEXUS TERMINAL
+                        </div>
+                        <div class="terminal-body" id="logs-terminal" style="max-height:calc(100vh - 220px);">
+                            <div class="terminal-line system">// NEXUS Load Balancer Simulator v1.0.0</div>
+                            <div class="terminal-line system">// Awaiting system log data...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ ANALYTICS VIEW ═══════════ -->
+                <div class="view-panel" id="view-analytics">
+                    <div class="section-title mb-md">Performance Analytics</div>
+                    <div class="grid-2 mb-md">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Server Utilization</div>
+                            </div>
+                            <div class="chart-container" style="height:250px;">
+                                <canvas id="chart-utilization"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Request Distribution</div>
+                            </div>
+                            <div class="chart-container" style="height:250px;">
+                                <canvas id="chart-distribution"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottlenecks & Recommendations -->
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">⚠ Bottleneck Detection</div>
+                            </div>
+                            <div id="bottlenecks-panel">
+                                <div class="terminal-line system" style="padding:8px 0;">No bottlenecks detected</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">💡 Recommendations</div>
+                            </div>
+                            <div id="recommendations-panel">
+                                <div class="terminal-line system" style="padding:8px 0;">Start simulation for insights</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SETTINGS VIEW ═══════════ -->
+                <div class="view-panel" id="view-settings">
+                    <div class="section-title mb-md">Configuration</div>
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Simulation Settings</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tick Interval (ms)</label>
+                                <input type="number" class="input" id="setting-tick-interval" value="500" min="100" max="5000" step="100">
+                            </div>
+                            <div class="form-group mt-md">
+                                <div class="toggle" id="toggle-sticky" onclick="toggleSetting('sticky_sessions')">
+                                    <div class="toggle-switch"></div>
+                                    <span>Sticky Sessions</span>
+                                </div>
+                            </div>
+                            <div class="form-group mt-md">
+                                <div class="toggle" id="toggle-autoscale" onclick="toggleSetting('auto_scaling')">
+                                    <div class="toggle-switch"></div>
+                                    <span>Auto-Scaling</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary mt-md" onclick="saveSettings()">APPLY SETTINGS</button>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Auto-Scale Config</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Min Servers</label>
+                                <input type="number" class="input" id="setting-autoscale-min" value="2" min="1" max="10">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Servers</label>
+                                <input type="number" class="input" id="setting-autoscale-max" value="8" min="2" max="20">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Scale Up CPU Threshold (%)</label>
+                                <input type="range" class="range-input" id="setting-scaleup" value="70" min="50" max="95">
+                                <span class="stat-sub" id="scaleup-value">70%</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Scale Down CPU Threshold (%)</label>
+                                <input type="range" class="range-input" id="setting-scaledown" value="20" min="5" max="40">
+                                <span class="stat-sub" id="scaledown-value">20%</span>
+                            </div>
+                            <div class="mt-md" style="display: flex; gap: 12px;">
+                                <button class="btn btn-primary" id="btn-save-scaling" onclick="saveSettings('btn-save-scaling')">APPLY SCALE CONFIG</button>
+                                <button class="btn" onclick="exportMetrics()">📥 EXPORT DATA</button>
+                            </div>
+                        </div>
+
+                        <!-- ── FEEDBACK FORM ── -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Direct Feedback</div>
+                            </div>
+                            <p style="color:var(--matrix-green-dark); font-size:12px; margin-bottom:15px;">Have suggestions or found a bug? Send it directly to the architect.</p>
+                            <div class="form-group">
+                                <label class="form-label">Your Name</label>
+                                <input type="text" class="input" id="feedback-name" placeholder="Agent Smith">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="input" id="feedback-email" placeholder="smith@matrix.dev">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Message</label>
+                                <textarea class="input" id="feedback-message" rows="4" style="resize:none;" placeholder="I've noticed a glitch in the simulation..."></textarea>
+                            </div>
+                            <button class="btn btn-primary mt-md" id="btn-send-feedback" onclick="sendFeedback()">📤 SEND TO ARCHITECT</button>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">About Nexus</div>
+                            </div>
+                            <div style="font-size:13px; color:var(--matrix-green-dim); line-height:1.6;">
+                                <p><strong>NEXUS</strong> is a high-performance distributed systems simulator designed by <strong>Pratham Arora (DownshifterX)</strong>.</p>
+                                <p style="margin-top:10px;">Built for visualizing load balancing strategies, Raft consensus, and dynamic traffic routing in real-time.</p>
+                                <p style="margin-top:10px; color:var(--matrix-green-glow); font-family:var(--font-code);">BUILD VERSION: 1.0.0-GOLD</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ═══════════ GEO MAP VIEW ═══════════ -->
+                <div class="view-panel" id="view-geomap">
+                    <div class="section-title mb-md">Global Traffic Map</div>
+                    <div class="card" style="padding: 0; position: relative; height: 65vh; overflow: hidden; border: 1px solid var(--matrix-green-dim); box-shadow: 0 0 20px rgba(0,255,65,0.05); background: #000;">
+                        <!-- Animated Matrix Grid Background -->
+                        <div class="matrix-pixel-bg"></div>
+                        
+                        <div id="globe-container" style="width:100%; height:100%; position:relative; z-index:3;"></div>
+
+                        <!-- High-Performance Matrix Rain (Canvas) -->
+                        <canvas id="matrix-canvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none; background:rgba(0,0,0,0.9);"></canvas>
+                        <div style="position:absolute; top:20px; left:20px; pointer-events:none; z-index:10;">
+                            <div style="color:var(--matrix-green); font-size:0.8rem; font-weight:bold; letter-spacing:1px;">ACTIVE ROUTES</div>
+                            <div id="geomap-stats-active" style="font-size:2rem; color:var(--matrix-green-glow); text-shadow:0 0 10px var(--matrix-green);">0</div>
+                        </div>
+                        
+                        <!-- GeoMap Glassmorphism Side Panel -->
+                        <div id="geomap-side-panel" class="geomap-side-panel">
+                            <h3 style="color:var(--matrix-green-glow); font-size:0.9rem; margin-top:0; border-bottom:1px solid #1f3d1f; padding-bottom:8px; margin-bottom:12px;">ACTIVE NODES</h3>
+                            <div id="geomap-node-list" style="display:flex; flex-direction:column; gap:10px;">
+                                <!-- Rendered by geomap.js -->
+                            </div>
+                        </div>
+
+                        <!-- Mobile Toggle for Panel -->
+                        <button id="geomap-panel-toggle" class="btn btn-sm btn-panel-toggle">NODES</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Easter Egg Modal -->
+    <div id="easter-egg-overlay" class="ee-overlay" onclick="closeEasterEgg()">
+        <div class="ee-container" onclick="event.stopPropagation()">
+            <div class="ee-glitch-bg"></div>
+            <div class="ee-scanlines"></div>
+            <div class="ee-content">
+                <div class="ee-hex-border">
+                    <div class="ee-inner">
+                        <div class="ee-icon">⬡</div>
+                        <div class="ee-label">SYSTEM ARCHITECT</div>
+                        <div class="ee-name" data-text="Pratham Arora">Pratham Arora</div>
+                        <div class="ee-alias">&lt; Downshifter X /&gt;</div>
+                        <div class="ee-line"></div>
+                        <div class="ee-tagline">// the one who built the matrix</div>
+                        <div class="ee-close-hint">[ press / or click to close ]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/charts.js"></script>
+    <script src="/js/websocket.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/servers.js"></script>
+    <script src="/js/algorithms.js"></script>
+    <script src="/js/logs.js"></script>
+    <script src="/js/analytics.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/geomap.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
