@@ -31,5 +31,5 @@ USER nexus
 EXPOSE 8000
 
 # Run the application with production-optimized settings
-# We use the shell form of CMD to allow environment variable expansion for $PORT
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4 --proxy-headers --forwarded-allow-ips "*"
+# We reduce workers to 1 for debugging purposes to ensure tracebacks are logged clearly.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --proxy-headers --forwarded-allow-ips "*"
