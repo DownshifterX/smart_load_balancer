@@ -1,0 +1,21 @@
+REFERENCES
+
+[1]  T. Tiangolo, "FastAPI," version 0.115.0, 2024. [Online]. Available: https://fastapi.tiangolo.com/. [Accessed: May 2, 2026].
+
+[2]  I. Fette and A. Melnikov, "The WebSocket Protocol," RFC 6455, Dec. 2011. [Online]. Available: https://www.rfc-editor.org/rfc/rfc6455.html. [Accessed: May 2, 2026].
+
+[3]  A. S. Tanenbaum and D. J. Wetherall, Computer Networks, 5th ed. Upper Saddle River, NJ: Pearson, 2011. (General reference for Load Balancing Algorithms: Round Robin, Least Connections).
+
+[4]  V. Agafonkin, "Leaflet," version 1.9.4, 2023. [Online]. Available: https://leafletjs.com/. [Accessed: May 2, 2026].
+
+[5]  Docker Inc., "Docker," version 27.0, 2024. [Online]. Available: https://www.docker.com/. [Accessed: May 2, 2026].
+
+[6]  Render, "Render: Cloud Hosting for Developers," 2024. [Online]. Available: https://render.com/. [Accessed: May 2, 2026].
+
+[7]  Resend, "Resend: Email API for Developers," 2024. [Online]. Available: https://resend.com/. [Accessed: May 2, 2026].
+
+[8]  Python Software Foundation, "Python Language Reference," version 3.12, 2024. [Online]. Available: https://www.python.org/. [Accessed: May 2, 2026].
+
+[9]  S. Chacon and B. Straub, Pro Git, 2nd ed. Apress, 2014. [Online]. Available: https://git-scm.com/book/en/v2.
+
+[10] Pydantic Team, "Pydantic," version 2.5, 2024. [Online]. Available: https://docs.pydantic.dev/. [Accessed: May 2, 2026].

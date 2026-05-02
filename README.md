@@ -2,9 +2,14 @@
 
 > A real-time load balancing simulator with a Matrix-themed hacker dashboard. Visualize how different load balancing algorithms distribute traffic across servers under various conditions.
 
+## 🚀 Live Demo
+**View the live site:** [https://nexus-load-balancer.onrender.com/](https://nexus-load-balancer.onrender.com/)
+
+---
+
 ![Python](https://img.shields.io/badge/Python-3.10+-00ff41?style=flat-square&logo=python&logoColor=00ff41)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-00ff41?style=flat-square&logo=fastapi&logoColor=00ff41)
-![License](https://img.shields.io/badge/License-MIT-00ff41?style=flat-square)
+![Render](https://img.shields.io/badge/Deployed%20on-Render-00ff41?style=flat-square&logo=render&logoColor=00ff41)
 
 ---
 
@@ -249,3 +254,8 @@ Full API docs available at `http://localhost:8000/docs` (Swagger UI).
 ## 👨‍💻 Author
 
 Built as a load balancing visualization and simulation project.
+
+---
+
+## 📚 Documentation
+For academic submission, see the [references.txt](./references.txt) file for all technical citations in **IEEE format**.
