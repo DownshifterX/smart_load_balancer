@@ -27,13 +27,8 @@ class Settings(BaseSettings):
     DEFAULT_SERVER_MAX_CONNECTIONS: int = Field(default=100, description="Default max connections per server")
     DEFAULT_SERVER_WEIGHT: int = Field(default=1, description="Default server weight")
 
-    # SMTP Settings (for Feedback)
-    SMTP_HOST: str = Field(default="", description="SMTP server host")
-    SMTP_PORT: int = Field(default=587, description="SMTP server port")
-    SMTP_USER: str = Field(default="", description="SMTP username")
-    SMTP_PASSWORD: str = Field(default="", description="SMTP password")
-    SMTP_TLS: bool = Field(default=True, description="Use TLS for SMTP")
-
+    # Email API Settings (Resend)
+    RESEND_API_KEY: str = Field(default="", description="Resend API Key for HTTP email delivery")
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
