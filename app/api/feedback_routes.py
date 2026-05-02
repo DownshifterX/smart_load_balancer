@@ -40,9 +40,16 @@ async def submit_feedback(body: FeedbackRequest):
     except Exception as e:
         logger.error(f"Feedback submission failed: {e}")
         error_msg = str(e)
+        
+        # Determine specific error type for better user guidance
         if "connect" in error_msg.lower():
-            detail = "CONNECTION ERROR: Could not reach Gmail servers."
+            detail = "CONNECTION FAILED: Could not reach Gmail servers. (Check port or firewall)"
+        elif "authentication" in error_msg.lower() or "535" in error_msg:
+            detail = "AUTHENTICATION FAILED: Check your Gmail App Password."
+        elif "tls" in error_msg.lower() or "ssl" in error_msg.lower():
+            detail = "ENCRYPTION ERROR: SSL/TLS handshake failed."
         else:
-            detail = f"TRANSMISSION ERROR: {error_msg}"
+            detail = f"TRANSMISSION FAILED: {error_msg}"
+            
         raise HTTPException(status_code=500, detail=detail)
 
