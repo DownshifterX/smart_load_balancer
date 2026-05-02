@@ -7,6 +7,7 @@ Utility for sending emails via SMTP (using aiosmtplib).
 import aiosmtplib
 import uuid
 import time
+import ssl
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from app.config import settings
@@ -47,26 +48,18 @@ async def send_feedback_email(name: str, email: str, message: str):
     # Sanitize password: remove spaces (common with Gmail copy-paste)
     clean_password = settings.SMTP_PASSWORD.replace(" ", "").strip()
 
-    # Manual SMTP Handshake (More robust across different library versions)
-    smtp = aiosmtplib.SMTP(
-        hostname=settings.SMTP_HOST,
-        port=settings.SMTP_PORT,
-        use_tls=use_tls_direct,
-        timeout=10,
-    )
-
+    # Robust transmission using the high-level 'send' function
+    # This automatically handles STARTTLS/TLS based on port and parameters
     try:
-        await smtp.connect()
-        
-        # If we're on Port 587, we need explicit STARTTLS
-        if use_starttls and not use_tls_direct:
-            await smtp.starttls()
-
-        # Perform Authentication
-        await smtp.login(settings.SMTP_USER, clean_password)
-
-        # Transmit Payload
-        await smtp.send_message(msg)
+        await aiosmtplib.send(
+            msg,
+            hostname=settings.SMTP_HOST,
+            port=settings.SMTP_PORT,
+            username=settings.SMTP_USER,
+            password=clean_password,
+            use_tls=use_tls_direct,
+            timeout=15,
+        )
         
         logger.info(f"Email sent successfully to {admin_email}")
         return True
@@ -76,9 +69,6 @@ async def send_feedback_email(name: str, email: str, message: str):
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
         raise
-    finally:
-        if smtp.is_connected:
-            await smtp.quit()
 
 
 
