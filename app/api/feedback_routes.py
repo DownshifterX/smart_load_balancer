@@ -35,10 +35,10 @@ async def submit_feedback(body: FeedbackRequest):
         error_msg = str(e)
         
         # Determine specific error type for better user guidance
-        if "Authentication" in error_msg or "535" in error_msg:
-            detail = "AUTHENTICATION FAILED: Check your SMTP App Password."
-        elif "timeout" in error_msg.lower() or "10060" in error_msg:
-            detail = "CONNECTION FAILED: SMTP server timed out (check port 587)."
+        if "Request failed" in error_msg:
+            detail = "CONNECTION FAILED: Could not reach Resend API servers."
+        elif "401" in error_msg or "unauthorized" in error_msg.lower() or "missing" in error_msg.lower():
+            detail = "AUTHENTICATION FAILED: Check your Resend API Key."
         else:
             detail = f"TRANSMISSION FAILED: {error_msg}"
             

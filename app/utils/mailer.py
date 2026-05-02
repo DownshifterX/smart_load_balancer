@@ -1,11 +1,10 @@
 """
 app/utils/mailer.py
 --------------------
-Utility for sending emails via standard SMTP.
+Utility for sending emails via HTTP API (Resend).
 """
 
-import aiosmtplib
-from email.message import EmailMessage
+import httpx
 from app.config import settings
 from app.utils.logger import get_logger
 
@@ -13,50 +12,44 @@ logger = get_logger("Mailer")
 
 async def send_feedback_email(name: str, email: str, message: str):
     """
-    Send a feedback email to the administrator using SMTP.
-    If the SMTP password is missing, it logs the message instead.
+    Send a feedback email to the administrator using the Resend API.
+    If the API key is missing, it logs the message instead.
     """
     admin_email = "arorapratham758@gmail.com"
     
-    # Check if we have the password configured
-    if not settings.SMTP_PASSWORD or "YOUR_APP_PASSWORD" in settings.SMTP_PASSWORD:
-        logger.warning("SMTP_PASSWORD NOT CONFIGURED. Simulating email delivery...")
+    # Check if we have the API key configured
+    if not settings.RESEND_API_KEY or "YOUR_KEY_HERE" in settings.RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY NOT CONFIGURED. Simulating email delivery...")
         logger.info(f"--- SIMULATED EMAIL TO {admin_email} ---")
-        logger.info(f"From: {name} <{email}>")
-        logger.info(f"Message: {message}")
         return True
 
-    # Prepare Email Message
-    msg = EmailMessage()
-    msg["Subject"] = f"NEXUS Feedback: {name}"
-    msg["From"] = f"NEXUS Simulator <{settings.SMTP_USER}>"
-    msg["To"] = admin_email
-    msg.set_content(f"Feedback from: {name} <{email}>\n\nMessage:\n{message}")
+    # Resend API endpoint and headers
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {settings.RESEND_API_KEY.strip()}",
+        "Content-Type": "application/json"
+    }
 
-    # Port 465 usually expects implicit SSL/TLS (use_tls=True)
-    # Port 587 usually expects explicit STARTTLS (starttls=True)
-    use_tls_direct = (settings.SMTP_PORT == 465)
-    
-    # Sanitize password: remove spaces (common with Gmail copy-paste)
-    clean_password = settings.SMTP_PASSWORD.replace(" ", "").strip()
+    # Payload for the email
+    payload = {
+        "from": "NEXUS Simulator <onboarding@resend.dev>",
+        "to": [admin_email],
+        "subject": f"NEXUS Feedback: {name}",
+        "text": f"Feedback from: {name} <{email}>\n\nMessage:\n{message}"
+    }
 
     try:
-        await aiosmtplib.send(
-            msg,
-            hostname=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
-            username=settings.SMTP_USER,
-            password=clean_password,
-            use_tls=use_tls_direct,
-            start_tls=settings.SMTP_TLS if not use_tls_direct else False,
-            timeout=15,
-        )
-        
-        logger.info(f"Email sent successfully to {admin_email} via SMTP")
-        return True
-    except aiosmtplib.SMTPAuthenticationError:
-        logger.error("SMTP Authentication Failed: Check your username and App Password.")
-        raise
-    except Exception as e:
-        logger.error(f"Failed to send email: {e}")
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200 or response.status_code == 201:
+                logger.info(f"Email sent successfully to {admin_email} via Resend")
+                return True
+            else:
+                error_msg = f"Resend API Error {response.status_code}: {response.text}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+                
+    except httpx.RequestError as e:
+        logger.error(f"HTTP Request failed while connecting to Resend: {e}")
         raise
