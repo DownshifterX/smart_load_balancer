@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS Load Balancer — High-Level Runtime Architecture</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-hover: #1f2937;
+      --border: #1f293d;
+      --border-accent: #00ff41;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --matrix-green: #00ff41;
+      --matrix-dim: rgba(0, 255, 65, 0.12);
+      --accent-cyan: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      max-width: 900px;
+      margin-bottom: 2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 0.85rem;
+      border-radius: 9999px;
+      background: var(--matrix-dim);
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      color: var(--matrix-green);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .canvas-container {
+      background: #0d131f;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      width: 100%;
+      max-width: 1200px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin-bottom: 2.5rem;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* Cards section */
+    .cards-section {
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .cards-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .cards-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .cards-header span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      border-color: rgba(0, 255, 65, 0.4);
+      background: var(--card-hover);
+      transform: translateY(-2px);
+    }
+
+    .card-category {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--matrix-green);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-summary {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Trust boundary tags */
+    .boundary-tag {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Archify Specification • Runtime Architecture</div>
+    <h1>NEXUS Load Balancer Simulator</h1>
+    <p>High-level runtime model highlighting the single primary traffic dispatch path, 10 core nodes, trust boundaries, and external cloud integrations.</p>
+  </header>
+
+  <div class="canvas-container">
+    <svg viewBox="0 0 1160 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Primary Path Gradient & Marker -->
+        <linearGradient id="primaryPathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="50%" stop-color="#00ff41" />
+          <stop offset="100%" stop-color="#00ff41" />
+        </linearGradient>
+
+        <marker id="primary-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#00ff41" />
+        </marker>
+        <marker id="cyan-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#38bdf8" />
+        </marker>
+        <marker id="dim-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#64748b" />
+        </marker>
+
+        <!-- Drop shadow filter -->
+        <filter id="nodeShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+
+      <!-- ======================================================== -->
+      <!-- TRUST BOUNDARIES                                         -->
+      <!-- ======================================================== -->
+
+      <!-- Boundary 1: Untrusted Client Zone -->
+      <rect x="25" y="40" width="160" height="480" rx="10" fill="#0b1320" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8" />
+      <text x="35" y="65" fill="#f43f5e" class="boundary-tag">⚑ Trust Boundary: Client</text>
+
+      <!-- Boundary 2: Ingress / Gateway Boundary -->
+      <rect x="210" y="40" width="150" height="480" rx="10" fill="#0c1726" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8" />
+      <text x="220" y="65" fill="#f59e0b" class="boundary-tag">⚡ Ingress Boundary</text>
+
+      <!-- Boundary 3: Trusted App & Simulation Core Boundary -->
+      <rect x="385" y="40" width="530" height="480" rx="10" fill="#09141f" stroke="#00ff41" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8" />
+      <text x="395" y="65" fill="#00ff41" class="boundary-tag">🛡 Trusted Simulation Runtime (FastAPI / In-Memory)</text>
+
+      <!-- Boundary 4: External Cloud Boundary -->
+      <rect x="940" y="40" width="195" height="480" rx="10" fill="#0b1320" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8" />
+      <text x="950" y="65" fill="#a855f7" class="boundary-tag">☁ External Cloud Services</text>
+
+      <!-- ======================================================== -->
+      <!-- CONNECTIONS (PRIMARY PATH ONLY AS REQUESTED)            -->
+      <!-- ======================================================== -->
+
+      <!-- Step 1: Browser -> Nginx -->
+      <path d="M 160 210 L 230 210" fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#cyan-arrow)" />
+      <text x="195" y="200" fill="#38bdf8" font-size="11" font-family="monospace" text-anchor="middle">HTTPS</text>
+
+      <!-- Step 2: Nginx -> FastAPI Router -->
+      <path d="M 335 210 L 415 210" fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#cyan-arrow)" />
+      <text x="375" y="200" fill="#38bdf8" font-size="11" font-family="monospace" text-anchor="middle">Reverse Proxy</text>
+
+      <!-- Step 3: FastAPI -> Simulation Engine -->
+      <path d="M 525 210 L 595 210" fill="none" stroke="url(#primaryPathGrad)" stroke-width="3.5" marker-end="url(#primary-arrow)" />
+      <text x="560" y="200" fill="#00ff41" font-size="11" font-weight="700" font-family="monospace" text-anchor="middle">Tick Loop</text>
+
+      <!-- Step 4: Simulation Engine -> Algorithm Registry -->
+      <path d="M 705 210 L 775 210" fill="none" stroke="#00ff41" stroke-width="3.5" marker-end="url(#primary-arrow)" />
+      <text x="740" y="200" fill="#00ff41" font-size="11" font-weight="700" font-family="monospace" text-anchor="middle">Get Target</text>
+
+      <!-- Step 5: Algorithm Registry -> Virtual Server Nodes -->
+      <path d="M 830 240 L 830 350" fill="none" stroke="#00ff41" stroke-width="3.5" marker-end="url(#primary-arrow)" />
+      <text x="838" y="295" fill="#00ff41" font-size="11" font-weight="700" font-family="monospace">Route Req</text>
+
+      <!-- ======================================================== -->
+      <!-- CORE COMPONENTS (10 NODES)                              -->
+      <!-- ======================================================== -->
+
+      <!-- Node 1: Browser SPA (Primary Path Start) -->
+      <g filter="url(#nodeShadow)">
+        <rect x="40" y="175" width="130" height="70" rx="8" fill="#131c2e" stroke="#38bdf8" stroke-width="1.5" />
+        <text x="105" y="205" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">Browser SPA</text>
+        <text x="105" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">Matrix Dashboard</text>
+      </g>
+
+      <!-- Node 2: Nginx Proxy -->
+      <g filter="url(#nodeShadow)">
+        <rect x="225" y="175" width="120" height="70" rx="8" fill="#131c2e" stroke="#f59e0b" stroke-width="1.5" />
+        <text x="285" y="205" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">Nginx Proxy</text>
+        <text x="285" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">SSL & WS Upgrade</text>
+      </g>
+
+      <!-- Node 3: FastAPI Router -->
+      <g filter="url(#nodeShadow)">
+        <rect x="410" y="175" width="125" height="70" rx="8" fill="#131c2e" stroke="#00ff41" stroke-width="1.5" />
+        <text x="472" y="205" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">FastAPI Router</text>
+        <text x="472" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">REST API Endpoints</text>
+      </g>
+
+      <!-- Node 4: WebSocket Manager (Supporting Telemetry) -->
+      <g filter="url(#nodeShadow)">
+        <rect x="410" y="350" width="125" height="70" rx="8" fill="#111827" stroke="#334155" stroke-width="1" />
+        <text x="472" y="380" fill="#e2e8f0" font-size="12" font-weight="bold" text-anchor="middle">WS Broadcaster</text>
+        <text x="472" y="399" fill="#94a3b8" font-size="10" text-anchor="middle">Real-time Push</text>
+      </g>
+
+      <!-- Node 5: Simulation Engine (Heart of simulation) -->
+      <g filter="url(#nodeShadow)">
+        <rect x="585" y="175" width="130" height="70" rx="8" fill="#131c2e" stroke="#00ff41" stroke-width="2" />
+        <text x="650" y="205" fill="#00ff41" font-size="13" font-weight="bold" text-anchor="middle">Simulation Engine</text>
+        <text x="650" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">Async Tick Loop</text>
+      </g>
+
+      <!-- Node 6: Algorithm Registry -->
+      <g filter="url(#nodeShadow)">
+        <rect x="765" y="175" width="130" height="70" rx="8" fill="#131c2e" stroke="#00ff41" stroke-width="2" />
+        <text x="830" y="205" fill="#00ff41" font-size="13" font-weight="bold" text-anchor="middle">Algo Registry</text>
+        <text x="830" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">6x Balancing Rules</text>
+      </g>
+
+      <!-- Node 7: Virtual Server Nodes (Target of Primary Path) -->
+      <g filter="url(#nodeShadow)">
+        <rect x="765" y="350" width="130" height="70" rx="8" fill="#131c2e" stroke="#00ff41" stroke-width="2" />
+        <text x="830" y="380" fill="#00ff41" font-size="13" font-weight="bold" text-anchor="middle">Virtual Servers</text>
+        <text x="830" y="399" fill="#9ca3af" font-size="10" text-anchor="middle">Alpha, Beta, Gamma</text>
+      </g>
+
+      <!-- Node 8: Raft Consensus Cluster -->
+      <g filter="url(#nodeShadow)">
+        <rect x="585" y="350" width="130" height="70" rx="8" fill="#111827" stroke="#334155" stroke-width="1" />
+        <text x="650" y="380" fill="#e2e8f0" font-size="12" font-weight="bold" text-anchor="middle">Raft Cluster</text>
+        <text x="650" y="399" fill="#94a3b8" font-size="10" text-anchor="middle">3-Node Control Plane</text>
+      </g>
+
+      <!-- Node 9: Metrics Collector & Alerts -->
+      <g filter="url(#nodeShadow)">
+        <rect x="585" y="90" width="130" height="55" rx="8" fill="#111827" stroke="#334155" stroke-width="1" />
+        <text x="650" y="117" fill="#e2e8f0" font-size="12" font-weight="bold" text-anchor="middle">Metrics & Alerts</text>
+        <text x="650" y="133" fill="#94a3b8" font-size="10" text-anchor="middle">RPS, Latency Stats</text>
+      </g>
+
+      <!-- Node 10: Resend Email API (External Dependency) -->
+      <g filter="url(#nodeShadow)">
+        <rect x="965" y="175" width="145" height="70" rx="8" fill="#181226" stroke="#a855f7" stroke-width="1.5" />
+        <text x="1037" y="205" fill="#c084fc" font-size="13" font-weight="bold" text-anchor="middle">Resend Email API</text>
+        <text x="1037" y="224" fill="#9ca3af" font-size="10" text-anchor="middle">Transactional HTTPS</text>
+      </g>
+
+      <!-- Primary Path Indicator Badge -->
+      <g>
+        <rect x="40" y="475" width="340" height="28" rx="6" fill="#0f1f18" stroke="rgba(0, 255, 65, 0.4)" stroke-width="1"/>
+        <circle cx="55" cy="489" r="4" fill="#00ff41"/>
+        <text x="68" y="493" fill="#00ff41" font-size="11" font-family="monospace" font-weight="bold">PRIMARY PATH: Request Balancing Dispatch</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Detailed Cards Section (Replaces edge clutter) -->
+  <section class="cards-section">
+    <div class="cards-header">
+      <h2>Architectural Details & Specifications</h2>
+      <span>4 Structured Detail Cards</span>
+    </div>
+
+    <div class="cards-grid">
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="card-category">Primary Path</div>
+        <div class="card-title">Request Dispatch Lifecycle</div>
+        <div class="card-summary">
+          <strong>Path:</strong> Browser &rarr; Nginx &rarr; FastAPI &rarr; Simulation Engine &rarr; Algorithm Registry &rarr; Virtual Server Nodes.<br><br>
+          The engine runs an asynchronous tick loop generating synthetic traffic根据 current traffic mode (slow, normal, heavy, burst) and routes each payload to active nodes through the selected strategy.
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="card-category">Component Detail</div>
+        <div class="card-title">Raft Consensus Control Plane</div>
+        <div class="card-summary">
+          Simulates a 3-node distributed consensus cluster maintaining active leader election, heartbeat intervals (150ms-300ms), and term numbers.<br><br>
+          If the active leader node is killed via the dashboard, client requests are dropped until candidate voting finishes and a new quorum leader emerges.
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <div class="card-category">Component Detail</div>
+        <div class="card-title">Telemetry & Real-Time Broadcast</div>
+        <div class="card-summary">
+          <strong>MetricsCollector</strong> computes moving-average requests-per-second, 95th-percentile latencies, CPU distribution, and server health.<br><br>
+          Instead of polling, the <strong>WebSocket Broadcaster</strong> pushes state snapshots every tick to all connected browser clients.
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="card">
+        <div class="card-category">Trust Boundaries & Cloud Integration</div>
+        <div class="card-title">Security & External Dependencies</div>
+        <div class="card-summary">
+          <strong>Trust Boundaries:</strong> Untrusted client browser sessions are terminated at Nginx and FastAPI.<br><br>
+          <strong>External Dependency:</strong> The only third-party dependency is the <em>Resend API</em>, called over outbound HTTPS by the feedback router to dispatch administrator alert emails.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

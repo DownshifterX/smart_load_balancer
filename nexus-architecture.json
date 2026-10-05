@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "NEXUS Smart Load Balancer Runtime Architecture",
+    "output": "nexus-architecture.html",
+    "viewBox": [1280, 820],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "boundaries": [
+    {
+      "id": "untrusted_client_zone",
+      "label": "Client Zone (Untrusted)",
+      "type": "trust_boundary",
+      "description": "User workstations and browser sessions executing client-side JS"
+    },
+    {
+      "id": "ingress_zone",
+      "label": "Ingress / Reverse Proxy Boundary",
+      "type": "network_boundary",
+      "description": "TLS termination and HTTP/WS proxy routing boundary"
+    },
+    {
+      "id": "app_runtime_boundary",
+      "label": "FastAPI App Runtime (Trusted Execution)",
+      "type": "trust_boundary",
+      "description": "Async Python process orchestrating API routing and simulation loops"
+    },
+    {
+      "id": "simulation_core_boundary",
+      "label": "In-Memory Simulation Sandbox",
+      "type": "isolation_boundary",
+      "description": "In-memory virtual components, traffic generation, and cluster models"
+    },
+    {
+      "id": "external_services_zone",
+      "label": "External Cloud Dependencies",
+      "type": "trust_boundary",
+      "description": "Third-party cloud infrastructure and transactional delivery APIs"
+    }
+  ],
+  "components": [
+    {
+      "id": "browser_spa",
+      "boundary": "untrusted_client_zone",
+      "type": "frontend",
+      "label": "Browser SPA",
+      "sublabel": "Matrix HUD Dashboard (Vanilla JS + Charts)"
+    },
+    {
+      "id": "nginx_proxy",
+      "boundary": "ingress_zone",
+      "type": "gateway",
+      "label": "Nginx Reverse Proxy",
+      "sublabel": "Static Assets, SSL & WS Upgrade"
+    },
+    {
+      "id": "fastapi_api",
+      "boundary": "app_runtime_boundary",
+      "type": "backend",
+      "label": "FastAPI HTTP Router",
+      "sublabel": "REST API Controllers & Route Dispatch"
+    },
+    {
+      "id": "websocket_broadcaster",
+      "boundary": "app_runtime_boundary",
+      "type": "backend",
+      "label": "WebSocket Manager",
+      "sublabel": "Real-time Telemetry Broadcast"
+    },
+    {
+      "id": "simulation_engine",
+      "boundary": "simulation_core_boundary",
+      "type": "compute",
+      "label": "Simulation Engine",
+      "sublabel": "Async Tick Loop & Traffic Orchestrator"
+    },
+    {
+      "id": "algo_registry",
+      "boundary": "simulation_core_boundary",
+      "type": "compute",
+      "label": "Algorithm Registry",
+      "sublabel": "6x Balancing Strategies (RR, LC, etc.)"
+    },
+    {
+      "id": "virtual_server_nodes",
+      "boundary": "simulation_core_boundary",
+      "type": "compute",
+      "label": "Virtual Server Pool",
+      "sublabel": "Simulated Nodes (Alpha, Beta, Gamma, Delta)"
+    },
+    {
+      "id": "raft_cluster",
+      "boundary": "simulation_core_boundary",
+      "type": "compute",
+      "label": "Raft Control Plane",
+      "sublabel": "3-Node Leader Election & Quorum"
+    },
+    {
+      "id": "metrics_alerts",
+      "boundary": "simulation_core_boundary",
+      "type": "data",
+      "label": "Metrics & Alert Manager",
+      "sublabel": "Rolling RPS, Latency & Error Counter"
+    },
+    {
+      "id": "resend_mailer",
+      "boundary": "external_services_zone",
+      "type": "external",
+      "label": "Resend Email API",
+      "sublabel": "Transactional Admin Mail Delivery (HTTPS)"
+    }
+  ],
+  "connections": [
+    {
+      "id": "path_p1",
+      "from": "browser_spa",
+      "to": "nginx_proxy",
+      "label": "HTTPS / WSS",
+      "is_primary": true
+    },
+    {
+      "id": "path_p2",
+      "from": "nginx_proxy",
+      "to": "fastapi_api",
+      "label": "Proxy Forward",
+      "is_primary": true
+    },
+    {
+      "id": "path_p3",
+      "from": "fastapi_api",
+      "to": "simulation_engine",
+      "label": "Tick / Control",
+      "is_primary": true
+    },
+    {
+      "id": "path_p4",
+      "from": "simulation_engine",
+      "to": "algo_registry",
+      "label": "Select Target",
+      "is_primary": true
+    },
+    {
+      "id": "path_p5",
+      "from": "algo_registry",
+      "to": "virtual_server_nodes",
+      "label": "Route Request",
+      "is_primary": true
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_primary_path",
+      "title": "Primary Runtime Flow",
+      "category": "Architecture Path",
+      "summary": "Browser UI triggers simulation control or receives real-time telemetry. In the primary request path, the Simulation Engine ticks, consults the active Balancing Algorithm (Round Robin, Least Connections, etc.), and dispatches simulated traffic to target Virtual Server Nodes."
+    },
+    {
+      "id": "card_raft_control_plane",
+      "title": "Raft Consensus Control Plane",
+      "category": "Component Detail",
+      "summary": "3-Node simulated Raft cluster with heartbeats and leader elections. If the leader goes down, election timeouts trigger new candidate ballots, dropping client requests until quorum is re-established."
+    },
+    {
+      "id": "card_metrics_telemetry",
+      "title": "Telemetry & Stream Fan-Out",
+      "category": "Component Detail",
+      "summary": "MetricsCollector tracks RPS, 95th-percentile latencies, CPU utilization, and failure conditions. Telemetry ticks are pushed via WebSocketManager to all connected browser HUD clients asynchronously."
+    },
+    {
+      "id": "card_external_boundaries",
+      "title": "Trust Boundaries & External Integrations",
+      "category": "Security & Boundaries",
+      "summary": "Strict trust boundary separates untrusted browsers from backend Python execution. The only outbound external network call is via httpx to the Resend REST API for user feedback delivery using a bearer token."
+    }
+  ]
+}

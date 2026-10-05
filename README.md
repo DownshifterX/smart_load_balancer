@@ -1,261 +1,323 @@
 # ⬡ NEXUS — Smart Load Balancer Simulator
 
-> A real-time load balancing simulator with a Matrix-themed hacker dashboard. Visualize how different load balancing algorithms distribute traffic across servers under various conditions.
+> A high-performance, real-time load balancing simulator with an immersive Matrix-themed cyberpunk dashboard. Visualize, benchmark, and stress-test 6 load balancing algorithms across dynamic server pools with real-time WebSocket telemetry.
 
-## 🚀 Live Demo
-**View the live site:** [https://nexus-load-balancer.onrender.com/](https://nexus-load-balancer.onrender.com/)
+<p align="center">
+  <a href="https://nexus-load-balancer.onrender.com/" target="_blank">
+    <img src="https://img.shields.io/badge/LIVE%20DEMO-nexus--load--balancer.onrender.com-00ff41?style=for-the-badge&logo=render&logoColor=00ff41" alt="Live Demo" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-00ff41?style=flat-square&logo=python&logoColor=00ff41" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115-00ff41?style=flat-square&logo=fastapi&logoColor=00ff41" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/WebSocket-Full--Duplex-00ff41?style=flat-square&logo=socketdotio&logoColor=00ff41" alt="WebSocket" />
+  <img src="https://img.shields.io/badge/Raft-Consensus%20Sim-00ff41?style=flat-square&logo=apache&logoColor=00ff41" alt="Raft Consensus" />
+  <img src="https://img.shields.io/badge/Docker-Ready-00ff41?style=flat-square&logo=docker&logoColor=00ff41" alt="Docker" />
+  <img src="https://img.shields.io/badge/Deployed%20on-Render-00ff41?style=flat-square&logo=render&logoColor=00ff41" alt="Render" />
+</p>
 
 ---
 
-![Python](https://img.shields.io/badge/Python-3.10+-00ff41?style=flat-square&logo=python&logoColor=00ff41)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-00ff41?style=flat-square&logo=fastapi&logoColor=00ff41)
-![Render](https://img.shields.io/badge/Deployed%20on-Render-00ff41?style=flat-square&logo=render&logoColor=00ff41)
+## 🚀 Live Demo & Interactive Links
+* **Live Web Application:** [https://nexus-load-balancer.onrender.com/](https://nexus-load-balancer.onrender.com/)
+* **Interactive Architecture Diagram:** [nexus-architecture.html](./nexus-architecture.html)
+* **Interactive Sequence Diagram:** [cache-miss-sequence.html](./cache-miss-sequence.html)
+* **Archify Architecture Specification:** [nexus-architecture.json](./nexus-architecture.json)
+* **Archify Sequence Specification:** [cache-miss-request.sequence.json](./cache-miss-request.sequence.json)
 
 ---
 
 ## 🎯 Overview
 
-NEXUS is a **load balancing simulator** that lets you:
-- Watch requests being distributed across multiple virtual servers in real-time
-- Switch between **6 different load balancing algorithms** and compare their performance
-- Simulate server failures, high latency, and overload conditions
-- Visualize metrics: RPS, response times, success rates, CPU load, and more
-- Control traffic patterns: slow, normal, heavy, burst, traffic spikes
-- Auto-scale servers based on load thresholds
-
-Everything runs in-memory — no real backend servers needed. The entire simulation is self-contained.
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                  Browser (SPA)                   │
-│  Dashboard | Servers | Algorithms | Logs | ...   │
-│              ↕ WebSocket (real-time)             │
-├─────────────────────────────────────────────────┤
-│              FastAPI Backend                      │
-│  ┌──────────────────────────────────────────┐    │
-│  │         Simulation Engine                 │    │
-│  │  ┌─────────┐  ┌──────────┐  ┌────────┐  │    │
-│  │  │Algorithms│  │  Server  │  │Metrics │  │    │
-│  │  │ Registry │  │  Nodes   │  │Collector│  │    │
-│  │  └─────────┘  └──────────┘  └────────┘  │    │
-│  │       ┌────────────┐  ┌────────────┐     │    │
-│  │       │Alert Manager│  │Request Log │     │    │
-│  │       └────────────┘  └────────────┘     │    │
-│  └──────────────────────────────────────────┘    │
-├─────────────────────────────────────────────────┤
-│  API Routes: /api/simulation, /api/servers,      │
-│              /api/algorithms, /api/metrics        │
-│  WebSocket:  /ws                                 │
-└─────────────────────────────────────────────────┘
-```
+NEXUS is an end-to-end distributed system simulator built to demystify load balancing mechanics, fault tolerance, and consensus protocols:
+- **Real-Time Traffic Dispatch:** Watch synthetic HTTP/API traffic distribute across server nodes via WebSockets at customizable rates (Slow, Normal, Heavy, Burst, Custom RPS).
+- **6 Load Balancing Algorithms:** Seamlessly switch between Round Robin, Weighted Round Robin, Least Connections, IP Hash, Random, and Least Response Time on the fly.
+- **Raft Consensus Control Plane:** 3-node distributed consensus cluster with real-time leader elections, heartbeats, and failover quorum protection.
+- **Chaos & Fault Injection:** Inject server crashes, high latency spikes, and CPU/connection overloads to test cluster resiliency.
+- **Auto-Scaling Engine:** Automatic scale-up/scale-down of virtual nodes based on moving-average CPU thresholds.
+- **Live Metrics & Analytics:** Track rolling RPS, p95 response times, error rates, CPU load distribution, and alert conditions.
+- **Zero Real Infrastructure Required:** Fully simulated in-memory async Python engine running with microsecond precision.
 
 ---
 
-## 📁 Project Structure
+## 🏗️ High-Level Runtime Architecture
+
+Generated using **Archify** principles (bounded scope, single primary path, verified trust boundaries, and detail cards).
+
+```mermaid
+flowchart LR
+    classDef client fill:#0b1320,stroke:#f43f5e,stroke-width:2px,color:#fff;
+    classDef proxy fill:#0c1726,stroke:#f59e0b,stroke-width:2px,color:#fff;
+    classDef core fill:#09141f,stroke:#00ff41,stroke-width:2px,color:#fff;
+    classDef target fill:#132a1b,stroke:#00ff41,stroke-width:3px,color:#00ff41;
+    classDef external fill:#181226,stroke:#a855f7,stroke-width:2px,color:#fff;
+
+    subgraph ClientZone ["⚑ Trust Boundary: Client Zone (Untrusted)"]
+        Browser["🖥️ Browser SPA<br/>(Matrix HUD & Charts)"]:::client
+    end
+
+    subgraph IngressZone ["⚡ Ingress & Proxy Boundary"]
+        Nginx["🛡️ Nginx Proxy<br/>(TLS Termination & WS Upgrade)"]:::proxy
+    end
+
+    subgraph CoreZone ["🛡️ Trusted Simulation Runtime (FastAPI Engine)"]
+        FastAPI["⚡ FastAPI Router<br/>(REST Controllers)"]:::core
+        WS["📡 WebSocket Manager<br/>(Real-Time Broadcast)"]:::core
+        Engine["⚙️ Simulation Engine<br/>(Async Tick Loop)"]:::core
+        Algo["🔀 Algorithm Registry<br/>(6x Balancing Rules)"]:::core
+        Servers["🖥️ Virtual Server Pool<br/>(Alpha, Beta, Gamma, Delta)"]:::target
+        Raft["🗳️ Raft Consensus<br/>(3-Node Leader Election)"]:::core
+        Metrics["📊 Metrics & Alerts<br/>(Rolling Stats & p95)"]:::core
+    end
+
+    subgraph ExternalZone ["☁ External Cloud Services"]
+        Resend["✉️ Resend Email API<br/>(Transactional HTTPS)"]:::external
+    end
+
+    %% Primary Traffic Path (Highlighted)
+    Browser ==>|1. HTTPS / WSS| Nginx
+    Nginx ==>|2. Proxy Forward| FastAPI
+    FastAPI ==>|3. Tick & Control| Engine
+    Engine ==>|4. Select Target| Algo
+    Algo ==>|5. Route Request| Servers
+
+    %% Auxiliary & Background Channels
+    FastAPI -.->|Async Push| WS
+    WS -.->|Telemetry Stream| Browser
+    Engine -.->|Quorum Check| Raft
+    Servers -.->|Stats Collection| Metrics
+    FastAPI -.->|Feedback Outbound| Resend
+
+    linkStyle 0,1,2,3,4 stroke:#00ff41,stroke-width:3px;
+```
+
+> 💡 **Interactive Architecture Viewer:** Open [nexus-architecture.html](./nexus-architecture.html) in your browser to view the interactive diagram with full details for each component, trust boundary, and flow card.
+
+---
+
+## ⚡ Request Lifecycle Sequence (Cache Miss Flow)
+
+Modeled in the [Archify Sequence Specification](./cache-miss-request.sequence.json):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Browser as Browser / Client
+    participant API as API Server (FastAPI)
+    participant Redis as Redis Cache
+    participant DB as PostgreSQL DB
+
+    Browser->>+API: GET /resource
+    API->>+Redis: GET cache_key
+    Redis-->>-API: null (Cache Miss)
+
+    Note over API,DB: Cache Miss Fallback
+    API->>+DB: SELECT * FROM resources WHERE id = ...
+    DB-->>-API: Row Data
+
+    Note over API,Redis: Populate Cache
+    API->>+Redis: SETEX cache_key 3600 data
+    Redis-->>-API: OK
+
+    API-->>-Browser: 200 OK (JSON Payload)
+```
+
+> 💡 **Standalone Sequence Diagram:** View [cache-miss-sequence.html](./cache-miss-sequence.html) for the dedicated sequence rendering.
+
+---
+
+## 📁 Repository Structure
 
 ```
 smart_load_balancer/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                    # FastAPI app, routes, static files
-│   ├── config.py                  # Settings from .env
+│   ├── main.py                     # FastAPI application, static mounting, lifecycles
+│   ├── config.py                   # Pydantic settings & environment configuration
 │   ├── core/
-│   │   ├── simulation.py          # Simulation engine (tick loop)
-│   │   ├── server_node.py         # Virtual server model
-│   │   ├── request_model.py       # Simulated request model
-│   │   ├── metrics.py             # Metrics collector
-│   │   └── alerts.py              # Alert manager
+│   │   ├── simulation.py           # Simulation engine (async tick loop, traffic orchestration)
+│   │   ├── server_node.py          # Virtual server node model (CPU, latency, connection tracking)
+│   │   ├── request_model.py        # Synthetic request generator
+│   │   ├── metrics.py              # Metrics collector (RPS, p95 latencies, error tracking)
+│   │   ├── alerts.py               # Real-time alert manager & health rules
+│   │   └── raft.py                 # 3-Node Raft consensus control plane simulation
 │   ├── algorithms/
-│   │   ├── base.py                # Abstract base class
-│   │   ├── round_robin.py         # Round Robin
-│   │   ├── weighted_round_robin.py # Weighted Round Robin
-│   │   ├── least_connections.py   # Least Connections
-│   │   ├── ip_hash.py             # IP Hash
-│   │   ├── random_choice.py       # Random
-│   │   └── least_response_time.py # Least Response Time
+│   │   ├── base.py                 # Abstract base algorithm interface
+│   │   ├── round_robin.py          # Round Robin
+│   │   ├── weighted_round_robin.py  # Weighted Round Robin
+│   │   ├── least_connections.py    # Least Connections
+│   │   ├── ip_hash.py              # Client IP Hash
+│   │   ├── random_choice.py        # Uniform Random
+│   │   └── least_response_time.py  # Least Response Time
 │   ├── api/
-│   │   ├── simulation_routes.py   # Start/stop, traffic controls
-│   │   ├── server_routes.py       # Server CRUD, failure sim
-│   │   ├── algorithm_routes.py    # Algorithm switching
-│   │   ├── metrics_routes.py      # Stats, analytics, settings
-│   │   └── websocket_routes.py    # Real-time updates
+│   │   ├── simulation_routes.py    # Traffic modes, pause/play, spike controls
+│   │   ├── server_routes.py        # Dynamic server CRUD & fault injection
+│   │   ├── algorithm_routes.py     # Live algorithm switching
+│   │   ├── metrics_routes.py       # Snapshot metrics, analytics, JSON export
+│   │   ├── websocket_routes.py     # Full-duplex WebSocket real-time broadcast
+│   │   └── feedback_routes.py      # User feedback with Resend mailer integration
 │   └── utils/
-│       └── logger.py
+│       ├── logger.py               # Colored console logger
+│       └── mailer.py               # Resend API email utility
 ├── frontend/
-│   ├── index.html                 # SPA shell
+│   ├── index.html                  # Matrix HUD Single Page Application
 │   ├── css/
-│   │   ├── main.css               # Matrix theme, layout
-│   │   ├── components.css         # Cards, buttons, inputs
-│   │   └── animations.css         # Glow, scanline effects
+│   │   ├── main.css                # Matrix theme, cybernetic layout & variables
+│   │   ├── components.css          # Glassmorphic cards, sliders, gauges, HUD buttons
+│   │   └── animations.css          # Scanline, terminal flicker & neon glows
 │   └── js/
-│       ├── app.js                 # App controller, routing
-│       ├── websocket.js           # WebSocket manager
-│       ├── dashboard.js           # Dashboard view
-│       ├── servers.js             # Server management
-│       ├── algorithms.js          # Algorithm selection
-│       ├── logs.js                # Log viewer
-│       ├── analytics.js           # Analytics charts
-│       ├── settings.js            # Settings controls
-│       └── charts.js              # Chart.js utilities
+│       ├── app.js                  # SPA routing and main controller
+│       ├── websocket.js            # Resilient WebSocket client & reconnect logic
+│       ├── dashboard.js            # Real-time server grid & active stream view
+│       ├── servers.js              # Server control panel & fault injection tools
+│       ├── algorithms.js           # Live algorithm benchmark & comparison
+│       ├── logs.js                 # Terminal log feed
+│       ├── analytics.js            # Historical performance telemetry
+│       ├── settings.js             # Simulation tick rate, auto-scaling thresholds
+│       └── charts.js               # Chart.js time-series charts
 ├── config/
-│   └── defaults.json              # Default simulation config
-├── .env.example                   # Environment variables template
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-├── run.py                         # Entry point
+│   └── defaults.json               # Default server configs & simulation parameters
+├── nexus-architecture.html         # Archify rendered interactive architecture diagram
+├── nexus-architecture.json         # Archify typed architecture JSON specification
+├── cache-miss-sequence.html        # Rendered sequence diagram (cache miss flow)
+├── cache-miss-request.sequence.json# Archify sequence JSON specification
+├── docker-compose.yml              # Local container orchestrator
+├── Dockerfile                      # Production container image
+├── requirements.txt                # Python dependencies
+├── run.py                          # Local server launcher
 └── README.md
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Quickstart & Local Installation
 
 ### Prerequisites
 - Python 3.10+
-- pip
+- `pip` and `virtualenv`
 
-### 1. Clone & enter the project
+### 1. Clone & Setup
 ```bash
+git clone https://github.com/DownshifterX/smart_load_balancer.git
 cd smart_load_balancer
 ```
 
-### 2. Create a virtual environment
+### 2. Virtual Environment
 ```bash
+# Windows
 python -m venv venv
-source venv/bin/activate        # Linux/Mac
-venv\Scripts\activate           # Windows
+venv\Scripts\activate
+
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 3. Install dependencies
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment (optional)
+### 4. Configuration (Optional)
 ```bash
 cp .env.example .env
-# Edit .env to customize settings
+# Configure custom tick rates, default algorithms, or optional RESEND_API_KEY
 ```
 
-### 5. Run the application
+### 5. Launch
 ```bash
 python run.py
 ```
-
-Open your browser to **http://localhost:8000** — the NEXUS dashboard will appear.
+Open your browser to **http://localhost:8000** to enter the NEXUS Cyber Dashboard.
 
 ---
 
-## 🚀 Usage
+## 🎮 Dashboard & Simulation Controls
 
-### Dashboard Controls
-| Action | How |
-|---|---|
-| Start/Stop simulation | Click **▶ START** or press **Space** |
-| Switch traffic mode | Click **SLOW / NORMAL / HEAVY / BURST** |
-| Trigger traffic spike | Click **💥 SPIKE** |
-| Send manual request | Click **+ REQ** |
-| Reset all metrics | Click **↺ RESET** |
-| Switch views | Click sidebar items or press **1-6** |
+### Keyboard Shortcuts
+* `Space` — Start / Stop simulation loop
+* `1` - `6` — Switch views (Dashboard, Servers, Algorithms, Logs, Analytics, Settings)
 
-### Server Controls
-- **Add/Remove servers** dynamically
-- **Toggle** server health on/off
-- **Adjust weight** with slider
-- **Simulate failures**: crash, high latency, overload
-- **Recover** servers after simulation
+### Traffic Profiles
+| Mode | Traffic Intensity | Behavior |
+|---|---|---|
+| **STOPPED** | 0 req/sec | Standby / paused |
+| **SLOW** | 1 req/tick (~2 RPS) | Low-density testing |
+| **NORMAL** | 3 req/tick (~6 RPS) | Steady-state load |
+| **HEAVY** | 8 req/tick (~16 RPS) | Stressed conditions |
+| **BURST** | 20 req/tick (~40 RPS) | Spike overload testing |
+| **CUSTOM** | 1 - 100 RPS | Granular slider control |
 
-### Algorithms
-Switch between 6 algorithms live and watch how traffic distribution changes:
-1. **Round Robin** — Sequential cycling
-2. **Weighted Round Robin** — Proportional to weight
-3. **Least Connections** — Fewest active connections
-4. **IP Hash** — Deterministic by source IP
-5. **Random** — Uniform random selection
-6. **Least Response Time** — Fastest server first
+### Chaos Engineering & Fault Injection
+- **Kill Server:** Simulates an abrupt unrecoverable node crash (`500 Internal Error`).
+- **High Latency Injection:** Adds synthetic latency (200ms–800ms) to test queue backpressure.
+- **Connection Overload:** Spikes active sockets to max limit to trigger connection rejection.
+- **Raft Leader Kill:** Kills the elected consensus leader node to watch live failover and election term increment.
+
+---
+
+## ⚖️ Supported Load Balancing Algorithms
+
+1. **Round Robin (`round_robin`)**  
+   Sequentially steps through available active nodes in cyclical order.
+2. **Weighted Round Robin (`weighted_round_robin`)**  
+   Distributes traffic proportionally based on assigned server weight capacities.
+3. **Least Connections (`least_connections`)**  
+   Selects the server currently managing the fewest concurrent active sockets.
+4. **IP Hash (`ip_hash`)**  
+   Computes a deterministic hash of the client IP address for consistent routing.
+5. **Uniform Random (`random_choice`)**  
+   Distributes traffic purely pseudorandomly across healthy nodes.
+6. **Least Response Time (`least_response_time`)**  
+   Routes traffic to the node exhibiting the lowest moving-average latency and fewest connections.
 
 ---
 
 ## 🐳 Docker Deployment
 
+Run anywhere with zero dependencies:
+
 ```bash
-# Build and run
+# Using Docker Compose
 docker-compose up --build
 
-# Or just Docker
-docker build -t nexus-lb .
-docker run -p 8000:8000 nexus-lb
+# Or standard Docker build
+docker build -t nexus-load-balancer .
+docker run -p 8000:8000 nexus-load-balancer
 ```
 
 ---
 
-## ☁️ Cloud Deployment
+## 📡 API Reference Summary
 
-### Render
-1. Connect your GitHub repo
-2. Set build command: `pip install -r requirements.txt`
-3. Set start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-
-### Railway
-1. Connect GitHub repo
-2. Railway auto-detects Python
-3. Set start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-
----
-
-## 📡 API Reference
-
-| Endpoint | Method | Description |
+| Endpoint | Method | Functionality |
 |---|---|---|
-| `/api/simulation/start` | POST | Start simulation |
-| `/api/simulation/stop` | POST | Stop simulation |
-| `/api/simulation/reset` | POST | Reset all state |
-| `/api/simulation/traffic` | POST | Set traffic mode |
-| `/api/simulation/spike` | POST | Trigger traffic spike |
-| `/api/simulation/request` | POST | Send manual request |
-| `/api/servers` | GET | List servers |
-| `/api/servers` | POST | Add server |
-| `/api/servers/{id}/toggle` | POST | Toggle health |
-| `/api/servers/{id}/simulate-failure` | POST | Simulate crash |
-| `/api/algorithms` | GET | List algorithms |
-| `/api/algorithms/switch` | POST | Switch algorithm |
-| `/api/metrics` | GET | Current metrics |
-| `/api/metrics/export` | GET | Export all data |
-| `/api/alerts` | GET | Active alerts |
-| `/api/logs` | GET | System logs |
-| `/ws` | WS | Real-time updates |
+| `/api/simulation/start` | `POST` | Resumes synthetic traffic generation |
+| `/api/simulation/stop` | `POST` | Pauses simulation engine |
+| `/api/simulation/reset` | `POST` | Resets metrics and node counts to initial defaults |
+| `/api/simulation/traffic` | `POST` | Sets traffic profile (`slow`, `normal`, `heavy`, `burst`, `custom`) |
+| `/api/simulation/spike` | `POST` | Injects an instant burst of 50 concurrent requests |
+| `/api/servers` | `GET` / `POST` | Lists all server nodes or registers a new server |
+| `/api/servers/{id}/toggle` | `POST` | Enables / disables health status for a specific node |
+| `/api/servers/{id}/simulate-failure` | `POST` | Injects crash, latency, or overload conditions |
+| `/api/algorithms` | `GET` | Returns all 6 algorithm strategies and metrics |
+| `/api/algorithms/switch` | `POST` | Dynamically switches the active routing algorithm |
+| `/api/metrics` | `GET` | Fetches snapshot of RPS, latency percentiles, and errors |
+| `/api/metrics/export` | `GET` | Downloads current performance metrics as JSON |
+| `/api/feedback` | `POST` | Dispatches feedback email to administrator via Resend |
+| `/ws` | `WebSocket` | Full-duplex live telemetry and event stream |
 
-Full API docs available at `http://localhost:8000/docs` (Swagger UI).
+Interactive Swagger documentation available at `/docs` when running.
 
 ---
 
-## 🔑 Key Features
+## 📚 Technical Documentation & Citations
 
-| Feature | Details |
-|---|---|
-| 6 LB Algorithms | Pluggable architecture, easy to add more |
-| Real-time Dashboard | WebSocket-powered live updates |
-| Server Simulation | CPU, memory, connections, response time |
-| Failure Injection | Crash, latency, overload simulation |
-| Auto-Scaling | Scale up/down based on CPU thresholds |
-| Sticky Sessions | IP-based session persistence toggle |
-| Alert System | Overload detection, recommendations |
-| Metrics Export | Download JSON metrics snapshot |
-| Matrix Theme | Full green-on-black hacker aesthetic |
-| Keyboard Shortcuts | Space=toggle, 1-6=views |
+For academic evaluation and systems design references, consult [references.txt](./references.txt) for complete IEEE-formatted citations covering distributed load balancing, consensus theory, and reverse proxy architectures.
 
 ---
 
-## 👨‍💻 Author
-
-Built as a load balancing visualization and simulation project.
-
----
-
-## 📚 Documentation
-For academic submission, see the [references.txt](./references.txt) file for all technical citations in **IEEE format**.
+<p align="center">
+  <b>NEXUS Smart Load Balancer Simulator</b> • Built for Distributed Systems Visualization
+</p>
